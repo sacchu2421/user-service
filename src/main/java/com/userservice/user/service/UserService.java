@@ -10,14 +10,21 @@ import com.userservice.user.mapper.UserMapper;
 import com.userservice.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,44 +36,74 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
+    @Cacheable(value = "users", key = "#id", unless = "#result == null")
     @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.debug("Fetching user with id: {}", id);
         
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
         
+        stopWatch.stop();
+        log.debug("Retrieved user with id: {} in {} ms", id, stopWatch.getTotalTimeMillis());
+        
         return userMapper.toResponse(user);
     }
 
+    @Cacheable(value = "users", key = "'username:' + #username", unless = "#result == null")
     @Transactional(readOnly = true)
     public UserResponse getUserByUsername(String username) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.debug("Fetching user with username: {}", username);
         
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
         
+        stopWatch.stop();
+        log.debug("Retrieved user with username: {} in {} ms", username, stopWatch.getTotalTimeMillis());
+        
         return userMapper.toResponse(user);
     }
 
+    @Cacheable(value = "users", key = "'email:' + #email", unless = "#result == null")
     @Transactional(readOnly = true)
     public UserResponse getUserByEmail(String email) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.debug("Fetching user with email: {}", email);
         
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
         
+        stopWatch.stop();
+        log.debug("Retrieved user with email: {} in {} ms", email, stopWatch.getTotalTimeMillis());
+        
         return userMapper.toResponse(user);
     }
 
+    @Cacheable(value = "userList", key = "'all:' + #sortBy + ':' + #sortDir")
     @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.debug("Fetching all users");
         
         List<User> users = userRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
-        return users.stream()
+        List<UserResponse> result = users.stream()
                 .map(userMapper::toResponse)
                 .collect(Collectors.toList());
+        
+        stopWatch.stop();
+        log.debug("Retrieved {} users in {} ms", result.size(), stopWatch.getTotalTimeMillis());
+        
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -91,19 +128,36 @@ public class UserService {
                 .map(userMapper::toResponse);
     }
 
+    @CacheEvict(value = {"users", "userList"}, allEntries = true)
     public UserResponse createUser(UserRequest userRequest) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.info("Creating new user with username: {}", userRequest.getUsername());
         
         validateUserUniqueness(userRequest.getUsername(), userRequest.getEmail());
         
         User user = userMapper.toEntity(userRequest);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        
         User savedUser = userRepository.save(user);
         
-        log.info("Successfully created user with id: {}", savedUser.getId());
+        stopWatch.stop();
+        log.info("Successfully created user with id: {} in {} ms", savedUser.getId(), stopWatch.getTotalTimeMillis());
+        
+        // Async cache warming
+        warmupUserCacheAsync(savedUser.getId());
+        
         return userMapper.toResponse(savedUser);
     }
 
+    @CachePut(value = "users", key = "#id")
+    @CacheEvict(value = "userList", allEntries = true)
     public UserResponse updateUser(Long id, UserUpdateRequest updateRequest) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.info("Updating user with id: {}", id);
         
         User existingUser = userRepository.findById(id)
@@ -112,43 +166,79 @@ public class UserService {
         validateUpdateUniqueness(existingUser, updateRequest);
         
         userMapper.updateEntity(existingUser, updateRequest);
+        existingUser.setUpdatedAt(LocalDateTime.now());
+        
         User updatedUser = userRepository.save(existingUser);
         
-        log.info("Successfully updated user with id: {}", updatedUser.getId());
+        stopWatch.stop();
+        log.info("Successfully updated user with id: {} in {} ms", updatedUser.getId(), stopWatch.getTotalTimeMillis());
+        
         return userMapper.toResponse(updatedUser);
     }
 
+    @CacheEvict(value = {"users", "userList"}, allEntries = true)
     public void deleteUser(Long id) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.info("Deleting user with id: {}", id);
         
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
         
         userRepository.delete(user);
-        log.info("Successfully deleted user with id: {}", id);
+        
+        stopWatch.stop();
+        log.info("Successfully deleted user with id: {} in {} ms", id, stopWatch.getTotalTimeMillis());
     }
 
+    @CachePut(value = "users", key = "#id")
+    @CacheEvict(value = "userList", allEntries = true)
     public UserResponse updateUserStatus(Long id, User.UserStatus status) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        
         log.info("Updating status for user with id: {} to: {}", id, status);
         
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
         
         user.setStatus(status);
+        user.setUpdatedAt(LocalDateTime.now());
         User updatedUser = userRepository.save(user);
         
-        log.info("Successfully updated status for user with id: {}", id);
+        stopWatch.stop();
+        log.info("Successfully updated status for user with id: {} in {} ms", id, stopWatch.getTotalTimeMillis());
+        
         return userMapper.toResponse(updatedUser);
     }
 
+    @Cacheable(value = "userStats", key = "'total'")
     @Transactional(readOnly = true)
     public long getTotalUsersCount() {
         return userRepository.count();
     }
 
+    @Cacheable(value = "userStats", key = "'status:' + #status")
     @Transactional(readOnly = true)
     public long getUsersCountByStatus(User.UserStatus status) {
         return userRepository.countByStatus(status);
+    }
+    
+    @Async
+    public CompletableFuture<Void> warmupUserCacheAsync(Long userId) {
+        try {
+            log.debug("Warming up cache for user: {}", userId);
+            getUserById(userId);
+            log.debug("Cache warmed up for user: {}", userId);
+        } catch (Exception e) {
+            log.error("Error warming up cache for user: {}", userId, e);
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+    
+    public void warmupUserCache(Long userId) {
+        warmupUserCacheAsync(userId).join();
     }
 
     private void validateUserUniqueness(String username, String email) {
