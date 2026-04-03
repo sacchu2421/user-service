@@ -98,7 +98,7 @@ graph LR
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> Request[POST /api/v1/users]
+    Start([Start]) --> Request["POST /api/v1/users"]
     Request --> Validation{Validate Input}
     Validation -->|Invalid| Error400[400 Bad Request]
     Validation -->|Valid| CheckDuplicate{Check Duplicate}
@@ -114,7 +114,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> Request[GET /api/v1/users/{id}]
+    Start([Start]) --> Request["GET /api/v1/users/{id}"]
     Request --> ValidateID{Validate ID Parameter}
     ValidateID -->|Invalid| Error400[400 Bad Request]
     ValidateID -->|Valid| FindUser{Find User in DB}
