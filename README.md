@@ -115,11 +115,14 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([Start]) --> Request[GET /api/v1/users/{id}]
-    Request --> FindUser{Find User in DB}
+    Request --> ValidateID{Validate ID Parameter}
+    ValidateID -->|Invalid| Error400[400 Bad Request]
+    ValidateID -->|Valid| FindUser{Find User in DB}
     FindUser -->|Not Found| Error404[404 Not Found]
     FindUser -->|Found| MapToDTO[Map Entity to DTO]
     MapToDTO --> Success[200 OK]
-    Error404 --> End([End])
+    Error400 --> End([End])
+    Error404 --> End
     Success --> End
 ```
 
