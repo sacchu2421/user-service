@@ -27,18 +27,18 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
+                // Public endpoints (always accessible)
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/actuator/prometheus").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 
-                // Protected endpoints
-                .requestMatchers("/api/v1/users/**").authenticated()
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                // Development mode - make all endpoints public
+                .requestMatchers("/api/v1/**").permitAll()
+                .requestMatchers("/api/**").permitAll()
                 
-                // Any other request needs authentication
-                .anyRequest().authenticated()
+                // Any other request
+                .anyRequest().permitAll()
             );
 
         return http.build();

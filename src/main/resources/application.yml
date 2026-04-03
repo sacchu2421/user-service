@@ -35,27 +35,9 @@ spring:
       hibernate.order_inserts: true
       hibernate.order_updates: true
       hibernate.jdbc.batch_versioned_data: true
-      hibernate.cache.use_second_level_cache: true
-      hibernate.cache.use_query_cache: true
 
   cache:
-    type: redis
-    redis:
-      time-to-live: 600000
-      cache-null-values: false
-
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      timeout: 2000ms
-      jedis:
-        pool:
-          max-active: 20
-          max-idle: 10
-          min-idle: 5
-          max-wait: 2000ms
+    type: caffeine
 
   security:
     oauth2:
@@ -64,9 +46,7 @@ spring:
           issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080/auth/realms/user-service}
 
 server:
-  port: ${SERVER_PORT:8081}
-  servlet:
-    context-path: /api
+  port: ${SERVER_PORT:8082}
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain

@@ -41,10 +41,6 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     implementation("org.liquibase:liquibase-core:4.25.1")
     
-    // Redis for Caching
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
-    implementation("redis.clients:jedis:5.1.2")
-    
     // Security - Using correct Spring Boot 3.x dependencies
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.security:spring-security-oauth2-resource-server")
