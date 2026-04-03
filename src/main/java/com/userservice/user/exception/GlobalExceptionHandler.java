@@ -123,26 +123,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
-    @ExceptionHandler(RateLimitExceededException.class)
-    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(
-            RateLimitExceededException ex, WebRequest request) {
-        
-        log.warn("Rate limit exceeded: {}", ex.getMessage());
-        
-        ErrorResponse errorResponse = ErrorResponse.validationBuilder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.TOO_MANY_REQUESTS.value())
-                .error("Rate Limit Exceeded")
-                .message(ex.getMessage())
-                .path(request.getDescription(false).replace("uri=", ""))
-                .build();
-        
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .header("X-Rate-Limit-Remaining", String.valueOf(ex.getRemainingTokens()))
-                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
-                .body(errorResponse);
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, WebRequest request) {

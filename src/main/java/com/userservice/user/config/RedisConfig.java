@@ -1,13 +1,5 @@
 package com.userservice.user.config;
 
-import io.github.bucket4j.distributed.proxy.ProxyManager;
-import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
-import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.codec.ByteArrayCodec;
-import io.lettuce.core.codec.StringCodec;
-import io.lettuce.core.codec.ZsetScoreCodec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -71,32 +63,5 @@ public class RedisConfig {
         
         log.info("Redis template configured with JSON serialization");
         return template;
-    }
-
-    @Bean
-    public ProxyManager<String> bucket4jProxyManager(RedisConnectionFactory connectionFactory) {
-        try {
-            // Create Redis client for Bucket4j
-            RedisClient redisClient = RedisClient.create(
-                RedisURI.builder()
-                    .withHost(redisHost)
-                    .withPort(redisPort)
-                    .withPassword(redisPassword.isEmpty() ? null : redisPassword)
-                    .build()
-            );
-
-            StatefulRedisConnection<String, byte[]> connection = redisClient.connect(
-                new ZsetScoreCodec<>(StringCodec.UTF8, ByteArrayCodec.INSTANCE)
-            );
-
-            ProxyManager<String> proxyManager = LettuceBasedProxyManager.builderFor(connection)
-                .build();
-
-            log.info("Bucket4j proxy manager configured for Redis");
-            return proxyManager;
-        } catch (Exception e) {
-            log.error("Error configuring Bucket4j proxy manager", e);
-            throw e;
-        }
     }
 }

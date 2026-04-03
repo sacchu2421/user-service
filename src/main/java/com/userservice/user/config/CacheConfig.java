@@ -73,11 +73,6 @@ public class CacheConfig {
     public CaffeineCacheManager caffeineCacheManager(Caffeine<Object, Object> caffeine) {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
         cacheManager.setCaffeine(caffeine);
-        
-        // Configure individual caches
-        cacheManager.registerCustomCache("localUsers", caffeine.maximumSize(500));
-        cacheManager.registerCustomCache("localStats", caffeine.maximumSize(100));
-        
         return cacheManager;
     }
 }

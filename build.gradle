@@ -2,8 +2,6 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.7'
     id 'io.spring.dependency-management' version '1.1.7'
-    id 'org.liquibase.gradle' version '2.2.0'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'com.userservice'
@@ -21,7 +19,6 @@ repositories {
 }
 
 ext {
-    set('springCloudVersion', "2023.0.3")
     set('testcontainersVersion', "1.19.7")
 }
 
@@ -48,19 +45,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("redis.clients:jedis:5.1.2")
     
-    // Rate Limiting
-    implementation("com.github.vladimir-bukhtoyarov:bucket4j-spring-boot-starter:7.6.0")
-    implementation("com.github.vladimir-bukhtoyarov:bucket4j-redis:7.6.0")
-    
-    // Security
+    // Security - Using correct Spring Boot 3.x dependencies
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.security:spring-security-oauth2-resource-server")
-    implementation("org.springframework.security:spring-security-oauth2-jwt")
     
-    // Monitoring & Metrics
-    implementation("io.micrometer:micrometer-registry-prometheus:1.12.4")
-    implementation("io.micrometer:micrometer-tracing-bridge-brave:1.12.4")
-    implementation("io.zipkin.reporter2:zipkin-reporter-brave:2.17.4")
+    // Monitoring & Metrics - Using Spring Boot managed versions
+    implementation("io.micrometer:micrometer-registry-prometheus")
     
     // Performance & Utilities
     implementation("org.apache.commons:commons-lang3:3.14.0")
@@ -73,7 +63,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:redis")
-    testImplementation("com.redis.testcontainers:testcontainers-redis-junit")
+    testImplementation("com.redis.testcontainers:testcontainers-redis-junit:1.1.4")
     testImplementation("org.wiremock:wiremock-standalone:3.8.0")
 }
 
@@ -88,14 +78,6 @@ tasks.named('test') {
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
-    }
-}
-
-// Shadow plugin for creating fat JAR
-shadowJar {
-    mergeServiceFiles()
-    manifest {
-        attributes 'Start-Class': 'com.userservice.user.UserServiceApplication'
     }
 }
 
