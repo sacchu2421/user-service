@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: user-service
+  
+  liquibase:
+    changelog: classpath:db/changelog/db-changelog-master.xml
+    enabled: true
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/user_service_db
+    username: postgres
+    password: admin@123
+    properties:
+      charset: UTF-8
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate.format_sql: true
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: ${SERVER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.userservice: DEBUG
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+info:
+  app:
+    name: User Management Service
+    version: 0.0.1-SNAPSHOT
+    description: Spring Boot microservice for user management
